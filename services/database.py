@@ -41,10 +41,13 @@ def create_project(name: str, user_id: str) -> dict:
     return project
 
 
-def list_projects(user_id: str) -> list[dict]:
-    """프로젝트 목록 조회"""
+def list_projects(user_id: str = None) -> list[dict]:
+    """프로젝트 목록 조회 (user_id가 없으면 전체 조회)"""
     supabase = get_supabase()
-    result = supabase.table("blog_projects").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+    query = supabase.table("blog_projects").select("*")
+    if user_id:
+        query = query.eq("user_id", user_id)
+    result = query.order("created_at", desc=True).execute()
     return result.data or []
 
 
