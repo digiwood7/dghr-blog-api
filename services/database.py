@@ -193,3 +193,54 @@ def save_settings(user_id: str, key: str, value):
     }
     # upsert 사용 (있으면 업데이트, 없으면 삽입)
     supabase.table("blog_settings").upsert(data, on_conflict="user_id,setting_key").execute()
+
+
+# ============================================================
+# Reference URL Operations
+# ============================================================
+
+def get_reference_urls(user_id: str) -> list[dict]:
+    """사용자의 참고 URL 목록 조회"""
+    try:
+        supabase = get_supabase()
+        result = supabase.table("blog_reference_urls").select("*").eq("user_id", user_id).eq("is_active", True).order("created_at").execute()
+        return result.data or []
+    except:
+        return []
+
+
+def add_reference_url(user_id: str, url: str, title: str = "", description: str = "") -> dict:
+    """참고 URL 추가"""
+    supabase = get_supabase()
+    data = {
+        "user_id": user_id,
+        "url": url,
+        "title": title,
+        "description": description,
+        "is_active": True,
+    }
+    result = supabase.table("blog_reference_urls").insert(data).execute()
+    return result.data[0] if result.data else {}
+
+
+def update_reference_url(url_id: str, title: str = None, description: str = None, is_active: bool = None) -> dict:
+    """참고 URL 수정"""
+    supabase = get_supabase()
+    data = {}
+    if title is not None:
+        data["title"] = title
+    if description is not None:
+        data["description"] = description
+    if is_active is not None:
+        data["is_active"] = is_active
+    if data:
+        result = supabase.table("blog_reference_urls").update(data).eq("id", url_id).execute()
+        return result.data[0] if result.data else {}
+    return {}
+
+
+def delete_reference_url(url_id: str) -> bool:
+    """참고 URL 삭제"""
+    supabase = get_supabase()
+    supabase.table("blog_reference_urls").delete().eq("id", url_id).execute()
+    return True

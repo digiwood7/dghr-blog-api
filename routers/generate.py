@@ -34,6 +34,7 @@ async def generate_blog_content(project_id: str, data: GenerateRequest = None):
 
         project_name = project.get("name", "")
         ftp_path = project.get("ftp_path", "")
+        user_id = project.get("user_id", "")
 
         # 사진 목록 조회
         photos = get_photos(project_id)
@@ -52,9 +53,9 @@ async def generate_blog_content(project_id: str, data: GenerateRequest = None):
         if "error" in analysis_result:
             raise HTTPException(status_code=500, detail=f"이미지 분석 실패: {analysis_result['error']}")
 
-        # Step 2: 블로그 글 생성
+        # Step 2: 블로그 글 생성 (참고 URL 포함)
         keywords = data.keywords if data and data.keywords else analysis_result.get("main_keywords", [])
-        blog_result = generate_blog_with_gemini(analysis_result, keywords, project_name, image_urls)
+        blog_result = generate_blog_with_gemini(analysis_result, keywords, project_name, image_urls, user_id)
         if "error" in blog_result:
             raise HTTPException(status_code=500, detail=f"글 생성 실패: {blog_result['error']}")
 
