@@ -103,11 +103,15 @@ async def generate_blog_content(project_id: str, data: GenerateRequest = None):
         # 상태 업데이트: 생성 완료
         update_project_status(project_id, "generated")
 
+        # 디버그 정보 추출
+        debug_info = blog_result.get("debug", {})
+
         return GenerateResponse(
             title=title,
             content_html=content_html,
             tags=tags,
             html_url=html_url,
+            debug=debug_info,
         )
     except HTTPException:
         raise

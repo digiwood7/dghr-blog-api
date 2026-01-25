@@ -102,6 +102,49 @@ class AnalysisResponse(BaseModel):
     error: Optional[str] = None
 
 
+class DebugUrlDetail(BaseModel):
+    """참고 URL 디버그 정보"""
+    url: str
+    title: Optional[str] = ""
+    success: bool
+    content_length: int
+    error: Optional[str] = ""
+    preview: Optional[str] = ""
+
+
+class DebugReferenceUrls(BaseModel):
+    """참고 URL 전체 디버그"""
+    urls_found: int = 0
+    urls_fetched: int = 0
+    url_details: Optional[list[DebugUrlDetail]] = []
+
+
+class DebugPersona(BaseModel):
+    """페르소나 디버그"""
+    has_persona: bool = False
+    persona_text: Optional[str] = ""
+    persona_length: int = 0
+
+
+class DebugPromptSections(BaseModel):
+    """프롬프트 구성 디버그"""
+    has_persona: bool = False
+    has_reference: bool = False
+    persona_preview: Optional[str] = ""
+    reference_preview: Optional[str] = ""
+
+
+class DebugInfo(BaseModel):
+    """전체 디버그 정보"""
+    timestamp: Optional[str] = None
+    user_id: Optional[str] = None
+    persona: Optional[DebugPersona] = None
+    reference_urls: Optional[DebugReferenceUrls] = None
+    prompt_sections: Optional[DebugPromptSections] = None
+    full_prompt_length: int = 0
+    model: Optional[str] = None
+
+
 class GenerateResponse(BaseModel):
     """AI 글 생성 결과"""
     title: Optional[str] = None
@@ -109,6 +152,7 @@ class GenerateResponse(BaseModel):
     tags: Optional[list[str]] = []
     html_url: Optional[str] = None
     error: Optional[str] = None
+    debug: Optional[dict] = None  # 디버그 정보
 
 
 # ============================================================
