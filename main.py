@@ -24,7 +24,7 @@ load_dotenv(parent_dir / ".env.local", override=False)
 load_dotenv(parent_dir / ".env", override=False)
 
 # Import routers
-from routers import projects, photos, generate
+from routers import projects, photos, generate, settings
 
 # Create FastAPI app
 app = FastAPI(
@@ -39,7 +39,9 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://*.vercel.app",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,6 +51,7 @@ app.add_middleware(
 app.include_router(projects.router)
 app.include_router(photos.router)
 app.include_router(generate.router)
+app.include_router(settings.router)
 
 
 @app.get("/")
