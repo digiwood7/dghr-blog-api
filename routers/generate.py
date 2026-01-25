@@ -3,7 +3,10 @@ Generate Router
 AI 글 생성 API 엔드포인트
 """
 from fastapi import APIRouter, HTTPException
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+# 한국 시간대 (UTC+9)
+KST = timezone(timedelta(hours=9))
 
 from schemas.blog import (
     GenerateRequest,
@@ -91,7 +94,9 @@ async def generate_blog_content(project_id: str, data: GenerateRequest = None):
 </body>
 </html>"""
 
-            html_filename = f"blog_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+            # 한국 시간 기준으로 파일명 생성
+            kst_now = datetime.now(KST)
+            html_filename = f"blog_{kst_now.strftime('%Y%m%d_%H%M%S')}.html"
             remote_path = f"{ftp_path}/drafts/{html_filename}"
 
             try:
