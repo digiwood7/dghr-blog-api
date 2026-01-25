@@ -23,9 +23,11 @@ def fetch_url_content(url: str, max_length: int = 5000) -> dict:
 
     try:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
         }
-        resp = httpx.get(url, timeout=15.0, headers=headers, follow_redirects=True)
+        resp = httpx.get(url, timeout=30.0, headers=headers, follow_redirects=True)
 
         if resp.status_code != 200:
             result["error"] = f"HTTP {resp.status_code}"
@@ -36,15 +38,14 @@ def fetch_url_content(url: str, max_length: int = 5000) -> dict:
         # HTML 태그 제거
         content = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL | re.IGNORECASE)
         content = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL | re.IGNORECASE)
+        content = re.sub(r'<noscript[^>]*>.*?</noscript>', '', content, flags=re.DOTALL | re.IGNORECASE)
+        content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL)
         content = re.sub(r'<[^>]+>', ' ', content)
         content = re.sub(r'\s+', ' ', content).strip()
 
-        if len(content) < 100:
-            result["error"] = "콘텐츠가 너무 짧음"
-            return result
-
-        result["content"] = content[:max_length]
-        result["success"] = True
+        # 길이 제한 없이 콘텐츠 반환 (빈 문자열도 허용)
+        result["content"] = content[:max_length] if content else ""
+        result["success"] = True  # 콘텐츠 추출 성공
         return result
 
     except Exception as e:
