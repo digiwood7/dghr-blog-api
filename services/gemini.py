@@ -151,7 +151,7 @@ def analyze_images_with_gemini(image_urls: list[str], project_name: str) -> dict
         return {"error": "GOOGLE_API_KEY not set"}
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-3-pro-preview-11-2025")
+    model = genai.GenerativeModel("gemini-3-pro-preview")
 
     # Download images
     image_parts = []
@@ -198,7 +198,7 @@ JSON 형식으로 응답:
         result = json.loads(text.strip())
         result["debug"] = {
             "images_processed": len(image_parts),
-            "model": "gemini-3-pro-preview-11-2025"
+            "model": "gemini-3-pro-preview"
         }
         return result
     except Exception as e:
@@ -240,7 +240,7 @@ def generate_blog_with_gemini(
         return {"error": "GOOGLE_API_KEY not set"}
 
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-3-pro-preview-11-2025")
+    model = genai.GenerativeModel("gemini-3-pro-preview")
 
     # 디버그 정보 초기화
     debug_info = {
@@ -255,7 +255,7 @@ def generate_blog_with_gemini(
             "reference_preview": ""
         },
         "full_prompt_length": 0,
-        "model": "gemini-3-pro-preview-11-2025"
+        "model": "gemini-3-pro-preview"
     }
 
     main_keyword = keywords[0] if keywords else project_name
