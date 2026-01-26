@@ -55,8 +55,8 @@ async def create_new_project(data: ProjectCreate):
 
 
 @router.get("", response_model=ProjectListResponse)
-async def get_projects(user_id: Optional[str] = Query(None, description="사용자 ID (없으면 전체 조회)")):
-    """프로젝트 목록 조회 - 모든 로그인된 사용자가 전체 프로젝트를 볼 수 있음"""
+async def get_projects(user_id: str = Query(None, description="사용자 ID (없으면 전체 조회)")):
+    """프로젝트 목록 조회"""
     try:
         projects = list_projects(user_id)
         project_list = []

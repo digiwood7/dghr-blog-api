@@ -4,6 +4,8 @@ Photos Router
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import Optional
+from PIL import Image
+import io
 
 from schemas.blog import (
     PhotoResponse,
@@ -23,6 +25,60 @@ from services.database import (
 from services.ftp import Cafe24FTP, generate_filename
 
 router = APIRouter(prefix="/api/blog", tags=["photos"])
+
+
+def optimize_image(content: bytes, max_width: int = 1920, quality: int = 80) -> tuple[bytes, dict]:
+    """
+    이미지 최적화 (리사이징 + 품질 조정)
+
+    Args:
+        content: 원본 이미지 바이트
+        max_width: 최대 가로 크기 (기본 1920px)
+        quality: JPEG 품질 (기본 80%)
+
+    Returns:
+        (최적화된 이미지 바이트, 최적화 정보 딕셔너리)
+    """
+    original_size = len(content)
+
+    # 이미지 열기
+    img = Image.open(io.BytesIO(content))
+    original_width, original_height = img.size
+    original_format = img.format or "JPEG"
+
+    # RGBA 이미지는 RGB로 변환 (JPEG 저장 위해)
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
+    # 리사이징 (가로가 max_width보다 큰 경우만)
+    resized = False
+    if original_width > max_width:
+        ratio = max_width / original_width
+        new_height = int(original_height * ratio)
+        img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+        resized = True
+
+    new_width, new_height = img.size
+
+    # JPEG로 저장 (품질 설정)
+    output = io.BytesIO()
+    img.save(output, format="JPEG", quality=quality, optimize=True)
+    optimized_content = output.getvalue()
+    optimized_size = len(optimized_content)
+
+    # 최적화 정보
+    info = {
+        "original_size": original_size,
+        "optimized_size": optimized_size,
+        "original_dimensions": f"{original_width}x{original_height}",
+        "optimized_dimensions": f"{new_width}x{new_height}",
+        "compression_ratio": round(original_size / optimized_size, 1) if optimized_size > 0 else 0,
+        "size_reduction_percent": round((1 - optimized_size / original_size) * 100, 1) if original_size > 0 else 0,
+        "resized": resized,
+        "quality": quality,
+    }
+
+    return optimized_content, info
 
 
 @router.post("/projects/{project_id}/photos", response_model=PhotoResponse)
@@ -47,16 +103,22 @@ async def upload_photo(
         content = await file.read()
         original_name = file.filename or "photo.jpg"
 
+        # 이미지 최적화 (1920px, 품질 80%)
+        optimized_content, optimize_info = optimize_image(content, max_width=1920, quality=80)
+        print(f"[Image Optimize] {original_name}: {optimize_info['original_size']:,} bytes → {optimize_info['optimized_size']:,} bytes ({optimize_info['size_reduction_percent']}% 감소, {optimize_info['compression_ratio']}x 압축)")
+
         # 기존 사진 수 조회 (파일명 생성용)
         existing_photos = get_photos(project_id)
         photo_number = len(existing_photos) + 1
 
-        # 파일명 생성 및 FTP 업로드
-        filename = generate_filename(original_name, f"photo{photo_number}")
+        # 파일명 생성 및 FTP 업로드 (최적화된 이미지 사용)
+        # 확장자는 항상 .jpg로 (JPEG 저장하므로)
+        base_name = original_name.rsplit(".", 1)[0] if "." in original_name else original_name
+        filename = generate_filename(f"{base_name}.jpg", f"photo{photo_number}")
         remote_path = f"{ftp_path}/images/{filename}"
 
         with Cafe24FTP() as ftp:
-            ftp_url = ftp.upload_bytes(content, remote_path)
+            ftp_url = ftp.upload_bytes(optimized_content, remote_path)
 
         # DB 저장
         photo = add_photo(project_id, filename, ftp_url, caption, category)

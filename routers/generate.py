@@ -56,7 +56,8 @@ async def generate_blog_content_stream(project_id: str, keywords: str = ""):
 
             project_name = project.get("name", "")
             ftp_path = project.get("ftp_path", "")
-            user_id = project.get("user_id", "")
+            # 설정은 글로벌 공유이므로 "global" ID 사용
+            settings_user_id = "global"
 
             # Step 2: 사진 목록 조회
             yield create_sse_message("progress", {
@@ -118,7 +119,7 @@ async def generate_blog_content_stream(project_id: str, keywords: str = ""):
             })
 
             keyword_list = [k.strip() for k in keywords.split(",")] if keywords else analysis_result.get("main_keywords", [])
-            blog_result = generate_blog_with_gemini(analysis_result, keyword_list, project_name, image_urls, user_id)
+            blog_result = generate_blog_with_gemini(analysis_result, keyword_list, project_name, image_urls, settings_user_id)
             if "error" in blog_result:
                 yield create_sse_message("error", {"message": f"글 생성 실패: {blog_result['error']}"})
                 return
@@ -226,7 +227,8 @@ async def generate_blog_content(project_id: str, data: GenerateRequest = None):
 
         project_name = project.get("name", "")
         ftp_path = project.get("ftp_path", "")
-        user_id = project.get("user_id", "")
+        # 설정은 글로벌 공유이므로 "global" ID 사용
+        settings_user_id = "global"
 
         # 사진 목록 조회
         photos = get_photos(project_id)
@@ -247,7 +249,7 @@ async def generate_blog_content(project_id: str, data: GenerateRequest = None):
 
         # Step 2: 블로그 글 생성 (참고 URL 포함)
         keywords = data.keywords if data and data.keywords else analysis_result.get("main_keywords", [])
-        blog_result = generate_blog_with_gemini(analysis_result, keywords, project_name, image_urls, user_id)
+        blog_result = generate_blog_with_gemini(analysis_result, keywords, project_name, image_urls, settings_user_id)
         if "error" in blog_result:
             raise HTTPException(status_code=500, detail=f"글 생성 실패: {blog_result['error']}")
 
