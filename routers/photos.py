@@ -4,7 +4,7 @@ Photos Router
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import Optional
-from PIL import Image
+from PIL import Image, ImageOps
 import io
 
 from schemas.blog import (
@@ -43,6 +43,11 @@ def optimize_image(content: bytes, max_width: int = 1920, quality: int = 80) -> 
 
     # 이미지 열기
     img = Image.open(io.BytesIO(content))
+
+    # ⭐ EXIF Orientation 자동 보정 (사진 회전 문제 해결)
+    # 스마트폰으로 찍은 사진의 회전 정보(EXIF)를 읽고 자동으로 올바르게 회전
+    img = ImageOps.exif_transpose(img) or img
+
     original_width, original_height = img.size
     original_format = img.format or "JPEG"
 
