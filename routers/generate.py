@@ -157,8 +157,13 @@ async def generate_blog_content_stream(project_id: str, keywords: str = ""):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     <style>
-        body {{ font-family: 'Noto Sans KR', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
-        img {{ max-width: 100%; height: auto; }}
+        body {{ font-family: 'Noto Sans KR', sans-serif; max-width: 740px; margin: 0 auto; padding: 20px; font-size: 16px; line-height: 1.8; color: #333; }}
+        h2 {{ font-size: 22px; font-weight: 700; margin-top: 32px; margin-bottom: 14px; color: #111; }}
+        h3 {{ font-size: 19px; font-weight: 700; margin-top: 28px; margin-bottom: 12px; color: #222; }}
+        p {{ font-size: 16px; margin-bottom: 18px; }}
+        img {{ max-width: 100%; width: 100%; height: auto; border-radius: 6px; margin: 20px 0; display: block; }}
+        figure {{ text-align: center; margin: 20px 0; }}
+        figcaption {{ font-size: 13px; color: #888; margin-top: 8px; }}
         .tags {{ margin-top: 20px; }}
         .tag {{ display: inline-block; background: #e0e0e0; padding: 5px 10px; margin: 5px; border-radius: 15px; }}
     </style>
@@ -270,8 +275,13 @@ async def generate_blog_content(project_id: str, data: GenerateRequest = None):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
     <style>
-        body {{ font-family: 'Noto Sans KR', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
-        img {{ max-width: 100%; height: auto; }}
+        body {{ font-family: 'Noto Sans KR', sans-serif; max-width: 740px; margin: 0 auto; padding: 20px; font-size: 16px; line-height: 1.8; color: #333; }}
+        h2 {{ font-size: 22px; font-weight: 700; margin-top: 32px; margin-bottom: 14px; color: #111; }}
+        h3 {{ font-size: 19px; font-weight: 700; margin-top: 28px; margin-bottom: 12px; color: #222; }}
+        p {{ font-size: 16px; margin-bottom: 18px; }}
+        img {{ max-width: 100%; width: 100%; height: auto; border-radius: 6px; margin: 20px 0; display: block; }}
+        figure {{ text-align: center; margin: 20px 0; }}
+        figcaption {{ font-size: 13px; color: #888; margin-top: 8px; }}
         .tags {{ margin-top: 20px; }}
         .tag {{ display: inline-block; background: #e0e0e0; padding: 5px 10px; margin: 5px; border-radius: 15px; }}
     </style>

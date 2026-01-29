@@ -328,22 +328,28 @@ def generate_blog_with_gemini(
 프로젝트명: {project_name}
 분석된 테마: {analysis.get('overall_theme', '')}
 메인 키워드: {main_keyword}
-이미지 URL 목록: {json.dumps(image_urls, ensure_ascii=False)}
+총 이미지 수: {len(image_urls)}장
+
+【이미지 목록 - 반드시 전부 사용할 것】
+{chr(10).join(f"  이미지 {i+1}/{len(image_urls)}: {url}" for i, url in enumerate(image_urls))}
 
 【작성 지침】
 1. 인트로 (100-150자)
    - 독자의 호기심을 자극하는 문장으로 시작
    - 메인 키워드를 자연스럽게 포함
 
-2. 본문 (800-1500자)
+2. 본문 (1500-3000자)
    - 소제목을 활용한 구조적 글쓰기
    - 메인 키워드 "{main_keyword}"를 5회 이상 자연스럽게 반복
-   - 각 이미지에 대한 설명 포함
+   - 모든 이미지({len(image_urls)}장)에 대한 설명 포함
    - 전문적이면서도 친근한 톤 유지
 
-3. 이미지 배치
+3. 이미지 배치 (★ 최우선 규칙 ★)
+   - 위 이미지 목록의 {len(image_urls)}장을 하나도 빠짐없이 전부 HTML에 포함
    - 각 이미지마다 <figure> 태그 사용
-   - 이미지 설명은 자연스럽게 본문에 녹여내기
+   - 이미지 1번부터 {len(image_urls)}번까지 순서대로 본문에 배치
+   - 최종 HTML의 <img> 태그 개수가 정확히 {len(image_urls)}개여야 함
+   - 이미지가 누락되면 실패로 간주됨
 
 4. 마무리 (50-100자)
    - 독자의 행동을 유도하는 CTA(Call-to-Action)
@@ -361,6 +367,10 @@ def generate_blog_with_gemini(
 - 페르소나가 설정되어 있다면 그 말투와 스타일을 우선 적용
 - 참고 글이 있다면 그 구성과 톤을 참고하여 작성
 - 키워드를 억지로 넣지 말고 자연스럽게 녹여내기
+
+【최종 검증 - 응답 전 반드시 확인】
+- content_html 안에 <img 태그가 정확히 {len(image_urls)}개인지 세어볼 것
+- 누락된 이미지가 있으면 추가한 후 응답할 것
 
 JSON 형식으로만 응답하세요:
 {{
@@ -382,6 +392,25 @@ JSON 형식으로만 응답하세요:
             text = text.split("```")[1].split("```")[0]
 
         result = json.loads(text.strip())
+
+        # 후처리: 누락된 이미지 자동 추가
+        content_html = result.get("content_html", "")
+        included_urls = set(re.findall(r'<img[^>]+src="([^"]+)"', content_html))
+        missing_urls = [url for url in image_urls if url not in included_urls]
+
+        if missing_urls:
+            print(f"[Image Check] {len(image_urls)}장 중 {len(missing_urls)}장 누락 → 자동 추가")
+            # </article> 앞에 누락된 이미지 삽입
+            missing_html = "\n".join(
+                f'<figure><img src="{url}" alt="사진"><figcaption></figcaption></figure>'
+                for url in missing_urls
+            )
+            if "</article>" in content_html:
+                content_html = content_html.replace("</article>", f"\n{missing_html}\n</article>")
+            else:
+                content_html += f"\n{missing_html}"
+            result["content_html"] = content_html
+
         result["debug"] = debug_info
 
         return result
