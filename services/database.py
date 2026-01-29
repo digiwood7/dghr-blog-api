@@ -138,14 +138,35 @@ def reorder_photos(project_id: str, photo_ids: list[str]) -> bool:
     return True
 
 
-def search_photos(category: str = None) -> list[dict]:
-    """카테고리별 전체 사진 조회 (향후 조회 도구용)"""
+def search_photos(category: str = None, keyword: str = None, date_from: str = None, date_to: str = None, page: int = 1, page_size: int = 20) -> dict:
+    """사진 검색 (카테고리, 키워드, 날짜 범위, 페이징)
+
+    Returns: {"photos": list[dict], "total": int, "page": int, "page_size": int, "total_pages": int}
+    """
     supabase = get_supabase()
-    query = supabase.table("blog_photos").select("*, blog_projects(name)")
+    query = supabase.table("blog_photos").select("*, blog_projects(name)", count="exact")
     if category:
         query = query.eq("category", category)
-    result = query.order("created_at", desc=True).execute()
-    return result.data or []
+    if keyword:
+        query = query.or_(f"caption.ilike.*{keyword}*,filename.ilike.*{keyword}*")
+    if date_from:
+        query = query.gte("created_at", f"{date_from}T00:00:00")
+    if date_to:
+        query = query.lte("created_at", f"{date_to}T23:59:59")
+
+    # 총 개수 조회를 위해 먼저 실행
+    offset = (page - 1) * page_size
+    result = query.order("created_at", desc=True).range(offset, offset + page_size - 1).execute()
+    total = result.count or 0
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 1
+
+    return {
+        "photos": result.data or [],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
 
 
 def delete_photo(photo_id: str) -> bool:

@@ -3,9 +3,11 @@ Photos Router
 사진 관리 API 엔드포인트
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from typing import Optional
 from PIL import Image, ImageOps
 import io
+import httpx
 
 from schemas.blog import (
     PhotoResponse,
@@ -241,6 +243,37 @@ async def delete_photo_endpoint(photo_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/photos/{photo_id}/download")
+async def download_photo(photo_id: str):
+    """사진 다운로드 (FTP URL 프록시)"""
+    try:
+        photo = get_photo(photo_id)
+        if not photo:
+            raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다")
+
+        ftp_url = photo.get("ftp_url")
+        if not ftp_url:
+            raise HTTPException(status_code=400, detail="다운로드 URL이 없습니다")
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(ftp_url, timeout=30.0)
+            if resp.status_code != 200:
+                raise HTTPException(status_code=502, detail="이미지를 가져올 수 없습니다")
+
+        filename = photo.get("filename", "photo.jpg")
+        content_type = resp.headers.get("content-type", "image/jpeg")
+
+        return StreamingResponse(
+            io.BytesIO(resp.content),
+            media_type=content_type,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.put("/projects/{project_id}/photos/reorder", response_model=SuccessResponse)
 async def reorder_photos_endpoint(project_id: str, data: PhotoReorderRequest):
     """사진 순서 변경"""
@@ -257,24 +290,45 @@ async def reorder_photos_endpoint(project_id: str, data: PhotoReorderRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/photos/search", response_model=PhotoListResponse)
-async def search_photos_endpoint(category: Optional[str] = None):
-    """카테고리별 전체 사진 조회 (향후 조회 도구용)"""
+@router.get("/photos/search")
+async def search_photos_endpoint(
+    category: Optional[str] = None,
+    keyword: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+):
+    """사진 검색 (카테고리, 키워드, 날짜 범위, 페이징)"""
     try:
-        photos = search_photos(category=category)
+        result = search_photos(
+            category=category,
+            keyword=keyword,
+            date_from=date_from,
+            date_to=date_to,
+            page=page,
+            page_size=page_size,
+        )
         photo_list = [
-            PhotoResponse(
-                id=p["id"],
-                project_id=p["project_id"],
-                filename=p["filename"],
-                ftp_url=p.get("ftp_url"),
-                caption=p.get("caption", ""),
-                category=p.get("category", "기타"),
-                display_order=p.get("display_order", 0),
-                created_at=p.get("created_at"),
-            )
-            for p in photos
+            {
+                "id": p["id"],
+                "project_id": p["project_id"],
+                "project_name": p.get("blog_projects", {}).get("name", "") if p.get("blog_projects") else "",
+                "filename": p["filename"],
+                "ftp_url": p.get("ftp_url"),
+                "caption": p.get("caption", ""),
+                "category": p.get("category", "기타"),
+                "display_order": p.get("display_order", 0),
+                "created_at": p.get("created_at"),
+            }
+            for p in result["photos"]
         ]
-        return PhotoListResponse(photos=photo_list)
+        return {
+            "photos": photo_list,
+            "total": result["total"],
+            "page": result["page"],
+            "page_size": result["page_size"],
+            "total_pages": result["total_pages"],
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
