@@ -50,6 +50,12 @@ class PhotoUpdate(BaseModel):
     """사진 수정 요청"""
     caption: Optional[str] = None
     category: Optional[str] = None
+    display_order: Optional[int] = None
+
+
+class PhotoReorderRequest(BaseModel):
+    """사진 순서 변경 요청"""
+    photo_ids: list[str]
 
 
 class PhotoResponse(BaseModel):

@@ -11,6 +11,7 @@ from schemas.blog import (
     PhotoResponse,
     PhotoListResponse,
     PhotoUpdate,
+    PhotoReorderRequest,
     SuccessResponse,
 )
 from services.database import (
@@ -21,6 +22,8 @@ from services.database import (
     delete_photo,
     get_project,
     update_project_status,
+    reorder_photos,
+    search_photos,
 )
 from services.ftp import Cafe24FTP, generate_filename
 
@@ -187,7 +190,7 @@ async def update_photo_endpoint(photo_id: str, data: PhotoUpdate):
             raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다")
 
         # 업데이트
-        updated = update_photo(photo_id, caption=data.caption, category=data.category)
+        updated = update_photo(photo_id, caption=data.caption, category=data.category, display_order=data.display_order)
 
         # 업데이트된 정보 반환
         return PhotoResponse(
@@ -234,5 +237,44 @@ async def delete_photo_endpoint(photo_id: str):
         return SuccessResponse(success=True, message="사진이 삭제되었습니다")
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/projects/{project_id}/photos/reorder", response_model=SuccessResponse)
+async def reorder_photos_endpoint(project_id: str, data: PhotoReorderRequest):
+    """사진 순서 변경"""
+    try:
+        project = get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
+
+        reorder_photos(project_id, data.photo_ids)
+        return SuccessResponse(success=True, message="순서가 변경되었습니다")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/photos/search", response_model=PhotoListResponse)
+async def search_photos_endpoint(category: Optional[str] = None):
+    """카테고리별 전체 사진 조회 (향후 조회 도구용)"""
+    try:
+        photos = search_photos(category=category)
+        photo_list = [
+            PhotoResponse(
+                id=p["id"],
+                project_id=p["project_id"],
+                filename=p["filename"],
+                ftp_url=p.get("ftp_url"),
+                caption=p.get("caption", ""),
+                category=p.get("category", "기타"),
+                display_order=p.get("display_order", 0),
+                created_at=p.get("created_at"),
+            )
+            for p in photos
+        ]
+        return PhotoListResponse(photos=photo_list)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
