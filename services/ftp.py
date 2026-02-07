@@ -45,8 +45,10 @@ class Cafe24FTP:
         if remote_dir:
             self.ensure_dir(remote_dir)
         self.ftp.storbinary(f"STOR {remote_path}", BytesIO(data))
-        # /www/blog/... -> /blog/... 로 변환하여 공개 URL 생성
-        public_path = remote_path.replace("/www/blog/", "/blog/")
+        # /www/ 제거하여 공개 URL 생성 (/www/blog/... -> /blog/..., /www/proposal/... -> /proposal/...)
+        public_path = remote_path
+        if public_path.startswith("/www/"):
+            public_path = public_path[4:]  # /www/xxx -> /xxx
         return f"{self.base_url}{public_path}"
 
     def delete_file(self, remote_path: str) -> bool:

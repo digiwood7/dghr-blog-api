@@ -25,6 +25,7 @@ load_dotenv(parent_dir / ".env", override=False)
 
 # Import routers
 from routers import projects, photos, generate, settings
+from routers import progen_projects, progen_files
 
 # Create FastAPI app
 app = FastAPI(
@@ -54,6 +55,8 @@ app.include_router(projects.router)
 app.include_router(photos.router)
 app.include_router(generate.router)
 app.include_router(settings.router)
+app.include_router(progen_projects.router)
+app.include_router(progen_files.router)
 
 
 @app.get("/")
