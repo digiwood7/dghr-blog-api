@@ -86,7 +86,6 @@ async def get_projects(
         projects = list_progen_projects(user_id, search, status)
         project_list = []
         for p in projects:
-            file_count = get_progen_file_count(p["id"])
             project_list.append(ProgenProjectResponse(
                 id=p["id"],
                 name=p["name"],
@@ -99,7 +98,7 @@ async def get_projects(
                 user_id=p["user_id"],
                 created_at=p.get("created_at"),
                 updated_at=p.get("updated_at"),
-                file_count=file_count,
+                file_count=p.get("file_count", 0),
             ))
         return ProgenProjectListResponse(projects=project_list)
     except Exception as e:

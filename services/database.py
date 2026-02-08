@@ -42,13 +42,21 @@ def create_project(name: str, user_id: str) -> dict:
 
 
 def list_projects(user_id: str = None) -> list[dict]:
-    """프로젝트 목록 조회 (user_id가 없으면 전체 조회)"""
+    """프로젝트 목록 조회 (photo_count 포함, 단일 쿼리)"""
     supabase = get_supabase()
-    query = supabase.table("blog_projects").select("*")
+    query = supabase.table("blog_projects").select("*, blog_photos(count)")
     if user_id:
         query = query.eq("user_id", user_id)
     result = query.order("created_at", desc=True).execute()
-    return result.data or []
+    projects = result.data or []
+    # blog_photos(count) → photo_count로 변환
+    for p in projects:
+        photos_agg = p.pop("blog_photos", None)
+        if photos_agg and isinstance(photos_agg, list) and len(photos_agg) > 0:
+            p["photo_count"] = photos_agg[0].get("count", 0)
+        else:
+            p["photo_count"] = 0
+    return projects
 
 
 def get_project(project_id: str) -> dict:

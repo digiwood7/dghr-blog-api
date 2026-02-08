@@ -47,9 +47,9 @@ def create_progen_project(data: dict) -> dict:
 
 
 def list_progen_projects(user_id: str = None, search: str = None, status: str = None) -> list[dict]:
-    """프로젝트 목록 조회"""
+    """프로젝트 목록 조회 (file_count 포함, 단일 쿼리)"""
     supabase = get_supabase()
-    query = supabase.table("progen_projects").select("*")
+    query = supabase.table("progen_projects").select("*, progen_files(count)")
     if user_id:
         query = query.eq("user_id", user_id)
     if search:
@@ -57,7 +57,14 @@ def list_progen_projects(user_id: str = None, search: str = None, status: str = 
     if status:
         query = query.eq("status", status)
     result = query.order("created_at", desc=True).execute()
-    return result.data or []
+    projects = result.data or []
+    for p in projects:
+        files_agg = p.pop("progen_files", None)
+        if files_agg and isinstance(files_agg, list) and len(files_agg) > 0:
+            p["file_count"] = files_agg[0].get("count", 0)
+        else:
+            p["file_count"] = 0
+    return projects
 
 
 def get_progen_project(project_id: str) -> dict:

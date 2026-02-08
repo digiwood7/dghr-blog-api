@@ -61,7 +61,6 @@ async def get_projects(user_id: str = Query(None, description="사용자 ID (없
         projects = list_projects(user_id)
         project_list = []
         for p in projects:
-            photo_count = get_photo_count(p.get("id", ""))
             project_list.append(ProjectResponse(
                 id=p["id"],
                 name=p["name"],
@@ -70,7 +69,7 @@ async def get_projects(user_id: str = Query(None, description="사용자 ID (없
                 status=p.get("status", "draft"),
                 created_at=p.get("created_at"),
                 updated_at=p.get("updated_at"),
-                photo_count=photo_count,
+                photo_count=p.get("photo_count", 0),
             ))
         return ProjectListResponse(projects=project_list)
     except Exception as e:
