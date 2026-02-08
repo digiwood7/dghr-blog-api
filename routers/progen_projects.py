@@ -319,3 +319,7 @@ async def delete_content_version(project_id: str, version: int):
         delete_progen_content(project_id, version)
 
         return SuccessResponse(success=True, message=f"V{version}이 삭제되었습니다")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
