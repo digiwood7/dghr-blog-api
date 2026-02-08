@@ -28,6 +28,7 @@ from services.progen_db import (
     save_progen_content,
     get_progen_content,
     get_progen_versions,
+    delete_progen_content,
 )
 from services.ftp import Cafe24FTP
 
@@ -290,3 +291,31 @@ async def save_content(project_id: str, data: ProgenContentSave):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/projects/{project_id}/content/{version}", response_model=SuccessResponse)
+async def delete_content_version(project_id: str, version: int):
+    """특정 버전 콘텐츠 삭제 + FTP 파일 삭제"""
+    try:
+        project = get_progen_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
+
+        # 해당 버전 콘텐츠 확인
+        content_data = get_progen_content(project_id, version)
+        if not content_data:
+            raise HTTPException(status_code=404, detail="해당 버전을 찾을 수 없습니다")
+
+        # FTP 버전 폴더 삭제
+        ftp_path = project.get("ftp_path")
+        if ftp_path:
+            try:
+                with Cafe24FTP() as ftp:
+                    ftp.delete_directory(f"{ftp_path}/v{version}")
+            except Exception as ftp_err:
+                print(f"Progen content FTP delete warning: {ftp_err}")
+
+        # DB 삭제
+        delete_progen_content(project_id, version)
+
+        return SuccessResponse(success=True, message=f"V{version}이 삭제되었습니다")

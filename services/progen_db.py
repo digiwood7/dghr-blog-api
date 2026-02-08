@@ -185,6 +185,13 @@ def get_progen_content(project_id: str, version: int = None) -> dict:
     return {}
 
 
+def delete_progen_content(project_id: str, version: int) -> bool:
+    """특정 버전 콘텐츠 삭제"""
+    supabase = get_supabase()
+    supabase.table("progen_contents").delete().eq("project_id", project_id).eq("version", version).execute()
+    return True
+
+
 def get_progen_versions(project_id: str) -> list[dict]:
     """버전 목록 조회 (version, created_at, ftp_url)"""
     supabase = get_supabase()
