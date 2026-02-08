@@ -162,7 +162,8 @@ def get_next_version(project_id: str) -> int:
 
 
 def save_progen_content(project_id: str, version: int, html: str, raw_html: str,
-                        ftp_url: str = None, conversation_history: list = None) -> dict:
+                        ftp_url: str = None, conversation_history: list = None,
+                        template_id: str = None) -> dict:
     """콘텐츠 새 버전 INSERT"""
     supabase = get_supabase()
     data = {
@@ -173,6 +174,8 @@ def save_progen_content(project_id: str, version: int, html: str, raw_html: str,
         "ftp_url": ftp_url,
         "conversation_history": conversation_history or [],
     }
+    if template_id:
+        data["template_id"] = template_id
     result = supabase.table("progen_contents").insert(data).execute()
     return result.data[0] if result.data else {}
 

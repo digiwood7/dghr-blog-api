@@ -82,6 +82,7 @@ class ProgenContentSave(BaseModel):
     html: str
     raw_html: str
     conversation_history: Optional[list[dict]] = []
+    template_id: Optional[str] = None
 
 
 class ProgenContentResponse(BaseModel):
@@ -93,6 +94,7 @@ class ProgenContentResponse(BaseModel):
     raw_html: str
     ftp_url: Optional[str] = None
     conversation_history: Optional[list[dict]] = []
+    template_id: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

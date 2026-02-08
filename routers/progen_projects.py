@@ -218,6 +218,7 @@ async def get_content(
                 raw_html=content_data["raw_html"],
                 ftp_url=content_data.get("ftp_url"),
                 conversation_history=content_data.get("conversation_history", []),
+                template_id=content_data.get("template_id"),
                 created_at=content_data.get("created_at"),
                 updated_at=content_data.get("updated_at"),
             )
@@ -270,6 +271,7 @@ async def save_content(project_id: str, data: ProgenContentSave):
             raw_html=data.raw_html,
             ftp_url=ftp_url,
             conversation_history=data.conversation_history,
+            template_id=data.template_id,
         )
 
         # 프로젝트 상태 업데이트
@@ -283,6 +285,7 @@ async def save_content(project_id: str, data: ProgenContentSave):
             raw_html=content["raw_html"],
             ftp_url=content.get("ftp_url"),
             conversation_history=content.get("conversation_history", []),
+            template_id=content.get("template_id"),
             created_at=content.get("created_at"),
             updated_at=content.get("updated_at"),
         )
