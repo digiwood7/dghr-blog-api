@@ -74,9 +74,20 @@ def delete_project(project_id: str) -> bool:
 
 
 def update_project_status(project_id: str, status: str):
-    """프로젝트 상태 업데이트"""
+    """프로젝트 상태 업데이트 (generated 시 generated_at도 갱신)"""
     supabase = get_supabase()
-    supabase.table("blog_projects").update({"status": status}).eq("id", project_id).execute()
+    data = {"status": status}
+    if status == "generated":
+        from datetime import datetime, timezone
+        data["generated_at"] = datetime.now(timezone.utc).isoformat()
+    supabase.table("blog_projects").update(data).eq("id", project_id).execute()
+
+
+def update_project_name(project_id: str, name: str) -> dict:
+    """프로젝트 이름 변경"""
+    supabase = get_supabase()
+    result = supabase.table("blog_projects").update({"name": name}).eq("id", project_id).execute()
+    return result.data[0] if result.data else {}
 
 
 # ============================================================

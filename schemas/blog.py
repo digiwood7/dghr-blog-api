@@ -17,6 +17,11 @@ class ProjectCreate(BaseModel):
     user_id: str
 
 
+class ProjectUpdate(BaseModel):
+    """프로젝트 수정 요청"""
+    name: str
+
+
 class ProjectResponse(BaseModel):
     """프로젝트 응답"""
     id: str
@@ -26,6 +31,7 @@ class ProjectResponse(BaseModel):
     status: str = "draft"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    generated_at: Optional[datetime] = None
     photo_count: Optional[int] = None
 
 

@@ -7,6 +7,7 @@ from typing import Optional
 
 from schemas.blog import (
     ProjectCreate,
+    ProjectUpdate,
     ProjectResponse,
     ProjectListResponse,
     SuccessResponse,
@@ -17,6 +18,7 @@ from services.database import (
     get_project,
     delete_project,
     get_photo_count,
+    update_project_name,
 )
 from services.ftp import Cafe24FTP
 
@@ -47,6 +49,7 @@ async def create_new_project(data: ProjectCreate):
             status=project.get("status", "draft"),
             created_at=project.get("created_at"),
             updated_at=project.get("updated_at"),
+            generated_at=project.get("generated_at"),
         )
     except HTTPException:
         raise
@@ -69,6 +72,7 @@ async def get_projects(user_id: str = Query(None, description="사용자 ID (없
                 status=p.get("status", "draft"),
                 created_at=p.get("created_at"),
                 updated_at=p.get("updated_at"),
+                generated_at=p.get("generated_at"),
                 photo_count=p.get("photo_count", 0),
             ))
         return ProjectListResponse(projects=project_list)
@@ -93,6 +97,37 @@ async def get_project_detail(project_id: str):
             status=project.get("status", "draft"),
             created_at=project.get("created_at"),
             updated_at=project.get("updated_at"),
+            generated_at=project.get("generated_at"),
+            photo_count=photo_count,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/{project_id}", response_model=ProjectResponse)
+async def update_project_endpoint(project_id: str, data: ProjectUpdate):
+    """프로젝트 수정 (이름 변경)"""
+    try:
+        project = get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
+
+        updated = update_project_name(project_id, data.name)
+        if not updated:
+            raise HTTPException(status_code=500, detail="프로젝트 수정 실패")
+
+        photo_count = get_photo_count(project_id)
+        return ProjectResponse(
+            id=updated["id"],
+            name=updated["name"],
+            user_id=updated["user_id"],
+            ftp_path=updated.get("ftp_path"),
+            status=updated.get("status", "draft"),
+            created_at=updated.get("created_at"),
+            updated_at=updated.get("updated_at"),
+            generated_at=updated.get("generated_at"),
             photo_count=photo_count,
         )
     except HTTPException:
