@@ -81,8 +81,8 @@ def update_pptx_project(project_id: str, data: dict) -> dict:
             updates[key] = data[key]
     if not updates:
         return get_pptx_project(project_id)
-    result = supabase.table("pptx_projects").update(updates).eq("id", project_id).select().execute()
-    return result.data[0] if result.data else {}
+    supabase.table("pptx_projects").update(updates).eq("id", project_id).execute()
+    return get_pptx_project(project_id)
 
 
 def delete_pptx_project(project_id: str) -> bool:
