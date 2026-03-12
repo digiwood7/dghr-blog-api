@@ -1,10 +1,12 @@
 """
 PPTX Files Router
-PPT 파일 업로드/관리 API
+PPT 파일 업로드/관리 API + 파일 텍스트 추출
 """
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pathlib import Path
 from datetime import datetime
+
+import httpx
 
 from schemas.pptx import (
     PptxFileResponse,
@@ -19,6 +21,7 @@ from services.pptx_db import (
     delete_pptx_file,
 )
 from services.ftp import Cafe24FTP
+from services.file_extractor import extract_file_content
 
 # 이미지 최적화 함수 재사용
 from routers.photos import optimize_image
@@ -165,6 +168,86 @@ async def delete_file_endpoint(file_id: str):
         delete_pptx_file(file_id)
 
         return SuccessResponse(success=True, message="파일이 삭제되었습니다")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/projects/{project_id}/extract")
+async def extract_files_content(project_id: str):
+    """
+    프로젝트의 모든 문서 파일에서 텍스트 추출.
+    이미지 파일은 건너뛰고, PDF/DOCX/PPTX/XLSX/TXT만 처리.
+    FTP에서 다운로드 → 텍스트 추출 → JSON 반환
+    """
+    try:
+        project = get_pptx_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
+
+        files = get_pptx_files(project_id)
+        if not files:
+            return {"extractions": [], "total_chars": 0}
+
+        extractions = []
+        total_chars = 0
+
+        for f in files:
+            ftp_url = f.get("ftp_url", "")
+            original_name = f.get("original_name", "")
+            file_type = f.get("file_type", "")
+
+            # 이미지는 건너뛰기
+            if file_type == "image":
+                extractions.append({
+                    "filename": original_name,
+                    "file_type": "image",
+                    "text": "",
+                    "skipped": True,
+                    "reason": "이미지 파일은 텍스트 추출 불가",
+                })
+                continue
+
+            # FTP URL에서 파일 다운로드
+            if not ftp_url:
+                extractions.append({
+                    "filename": original_name,
+                    "error": "FTP URL 없음",
+                    "text": "",
+                })
+                continue
+
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    resp = await client.get(ftp_url)
+                    if resp.status_code != 200:
+                        extractions.append({
+                            "filename": original_name,
+                            "error": f"다운로드 실패: HTTP {resp.status_code}",
+                            "text": "",
+                        })
+                        continue
+
+                    file_content = resp.content
+            except Exception as dl_err:
+                extractions.append({
+                    "filename": original_name,
+                    "error": f"다운로드 오류: {str(dl_err)}",
+                    "text": "",
+                })
+                continue
+
+            # 텍스트 추출
+            result = extract_file_content(file_content, original_name, max_chars=8000)
+            total_chars += len(result.get("text", ""))
+            extractions.append(result)
+
+        return {
+            "extractions": extractions,
+            "total_chars": total_chars,
+            "file_count": len(files),
+        }
     except HTTPException:
         raise
     except Exception as e:
