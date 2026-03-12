@@ -174,6 +174,38 @@ async def delete_file_endpoint(file_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/projects/{project_id}/upload-generated")
+async def upload_generated_pptx(
+    project_id: str,
+    file: UploadFile = File(...),
+    version: int = 1,
+):
+    """생성된 PPTX 파일을 FTP에 업로드 (참고자료 DB에 등록하지 않음)"""
+    try:
+        project = get_pptx_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
+
+        ftp_path = project.get("ftp_path", "")
+        if not ftp_path:
+            raise HTTPException(status_code=400, detail="FTP 경로가 설정되지 않았습니다")
+
+        content = await file.read()
+        filename = file.filename or f"presentation_v{version}.pptx"
+
+        # 버전 폴더에 저장: /www/pptx/{date}_{id}/v{N}/presentation.pptx
+        remote_path = f"{ftp_path}/v{version}/{filename}"
+        with Cafe24FTP() as ftp:
+            ftp.ensure_dir(f"{ftp_path}/v{version}")
+            ftp_url = ftp.upload_bytes(content, remote_path)
+
+        return {"ftp_url": ftp_url, "filename": filename, "version": version}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/projects/{project_id}/extract")
 async def extract_files_content(project_id: str):
     """
