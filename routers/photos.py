@@ -26,6 +26,8 @@ from services.database import (
     update_project_status,
     reorder_photos,
     search_photos,
+    search_public_photos,
+    get_public_categories,
 )
 from services.ftp import Cafe24FTP, generate_filename
 
@@ -144,6 +146,7 @@ async def upload_photo(
             caption=photo.get("caption", ""),
             category=photo.get("category", "기타"),
             display_order=photo.get("display_order", 0),
+            is_public=photo.get("is_public", False),
             created_at=photo.get("created_at"),
         )
     except HTTPException:
@@ -171,6 +174,7 @@ async def get_project_photos(project_id: str):
                 caption=p.get("caption", ""),
                 category=p.get("category", "기타"),
                 display_order=p.get("display_order", 0),
+                is_public=p.get("is_public", False),
                 created_at=p.get("created_at"),
             )
             for p in photos
@@ -192,7 +196,7 @@ async def update_photo_endpoint(photo_id: str, data: PhotoUpdate):
             raise HTTPException(status_code=404, detail="사진을 찾을 수 없습니다")
 
         # 업데이트
-        updated = update_photo(photo_id, caption=data.caption, category=data.category, display_order=data.display_order)
+        updated = update_photo(photo_id, caption=data.caption, category=data.category, display_order=data.display_order, is_public=data.is_public)
 
         # 업데이트된 정보 반환
         return PhotoResponse(
@@ -203,6 +207,7 @@ async def update_photo_endpoint(photo_id: str, data: PhotoUpdate):
             caption=data.caption if data.caption is not None else photo.get("caption", ""),
             category=data.category if data.category is not None else photo.get("category", "기타"),
             display_order=photo.get("display_order", 0),
+            is_public=data.is_public if data.is_public is not None else photo.get("is_public", False),
             created_at=photo.get("created_at"),
         )
     except HTTPException:
@@ -330,5 +335,56 @@ async def search_photos_endpoint(
             "page_size": result["page_size"],
             "total_pages": result["total_pages"],
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================
+# Public Gallery API (인증 불필요)
+# ============================================================
+
+@router.get("/public/photos")
+async def public_photos_endpoint(
+    category: Optional[str] = None,
+    keyword: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 24,
+):
+    """외부 공개 사진 검색 (is_public=true만, 인증 불필요)"""
+    try:
+        result = search_public_photos(
+            category=category,
+            keyword=keyword,
+            page=page,
+            page_size=page_size,
+        )
+        photo_list = [
+            {
+                "id": p["id"],
+                "project_name": p.get("blog_projects", {}).get("name", "") if p.get("blog_projects") else "",
+                "ftp_url": p.get("ftp_url"),
+                "caption": p.get("caption", ""),
+                "category": p.get("category", "기타"),
+                "created_at": p.get("created_at"),
+            }
+            for p in result["photos"]
+        ]
+        return {
+            "photos": photo_list,
+            "total": result["total"],
+            "page": result["page"],
+            "page_size": result["page_size"],
+            "total_pages": result["total_pages"],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/public/categories")
+async def public_categories_endpoint():
+    """외부 공개 사진 카테고리 목록 (인증 불필요)"""
+    try:
+        categories = get_public_categories()
+        return {"categories": categories}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

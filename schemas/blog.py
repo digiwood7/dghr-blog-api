@@ -57,6 +57,7 @@ class PhotoUpdate(BaseModel):
     caption: Optional[str] = None
     category: Optional[str] = None
     display_order: Optional[int] = None
+    is_public: Optional[bool] = None
 
 
 class PhotoReorderRequest(BaseModel):
@@ -73,6 +74,7 @@ class PhotoResponse(BaseModel):
     caption: Optional[str] = ""
     category: Optional[str] = "기타"
     display_order: Optional[int] = 0
+    is_public: Optional[bool] = False
     created_at: Optional[datetime] = None
 
 

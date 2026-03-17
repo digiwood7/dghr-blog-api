@@ -133,8 +133,8 @@ def get_photo(photo_id: str) -> dict:
     return result.data or {}
 
 
-def update_photo(photo_id: str, caption: str = None, category: str = None, display_order: int = None) -> dict:
-    """사진 캡션/카테고리/순서 업데이트"""
+def update_photo(photo_id: str, caption: str = None, category: str = None, display_order: int = None, is_public: bool = None) -> dict:
+    """사진 캡션/카테고리/순서/공개여부 업데이트"""
     supabase = get_supabase()
     data = {}
     if caption is not None:
@@ -143,6 +143,8 @@ def update_photo(photo_id: str, caption: str = None, category: str = None, displ
         data["category"] = category
     if display_order is not None:
         data["display_order"] = display_order
+    if is_public is not None:
+        data["is_public"] = is_public
     if data:
         result = supabase.table("blog_photos").update(data).eq("id", photo_id).execute()
         return result.data[0] if result.data else {}
@@ -186,6 +188,37 @@ def search_photos(category: str = None, keyword: str = None, date_from: str = No
         "page_size": page_size,
         "total_pages": total_pages,
     }
+
+
+def search_public_photos(category: str = None, keyword: str = None, page: int = 1, page_size: int = 24) -> dict:
+    """외부 공개 사진 검색 (is_public=true만)"""
+    supabase = get_supabase()
+    query = supabase.table("blog_photos").select("*, blog_projects(name)", count="exact").eq("is_public", True)
+    if category:
+        query = query.eq("category", category)
+    if keyword:
+        query = query.or_(f"caption.ilike.*{keyword}*,filename.ilike.*{keyword}*")
+
+    offset = (page - 1) * page_size
+    result = query.order("created_at", desc=True).range(offset, offset + page_size - 1).execute()
+    total = result.count or 0
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 1
+
+    return {
+        "photos": result.data or [],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+    }
+
+
+def get_public_categories() -> list[str]:
+    """외부 공개 사진의 카테고리 목록"""
+    supabase = get_supabase()
+    result = supabase.table("blog_photos").select("category").eq("is_public", True).execute()
+    categories = sorted(set(p["category"] for p in (result.data or []) if p.get("category")))
+    return categories
 
 
 def delete_photo(photo_id: str) -> bool:
