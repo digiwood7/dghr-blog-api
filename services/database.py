@@ -170,13 +170,15 @@ def reorder_photos(project_id: str, photo_ids: list[str]) -> bool:
     return True
 
 
-def search_photos(category: str = None, keyword: str = None, date_from: str = None, date_to: str = None, page: int = 1, page_size: int = 20) -> dict:
-    """사진 검색 (카테고리, 키워드, 날짜 범위, 페이징)
+def search_photos(category: str = None, keyword: str = None, public_index: int = None, date_from: str = None, date_to: str = None, page: int = 1, page_size: int = 20) -> dict:
+    """사진 검색 (카테고리, 키워드, 공개번호, 날짜 범위, 페이징)
 
     Returns: {"photos": list[dict], "total": int, "page": int, "page_size": int, "total_pages": int}
     """
     supabase = get_supabase()
     query = supabase.table("blog_photos").select("*, blog_projects(name)", count="exact")
+    if public_index is not None:
+        query = query.eq("public_index", public_index)
     if category:
         query = query.eq("category", category)
     if keyword:

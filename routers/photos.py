@@ -301,15 +301,17 @@ async def reorder_photos_endpoint(project_id: str, data: PhotoReorderRequest):
 async def search_photos_endpoint(
     category: Optional[str] = None,
     keyword: Optional[str] = None,
+    public_index: Optional[int] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
     page: int = 1,
     page_size: int = 20,
 ):
-    """사진 검색 (카테고리, 키워드, 날짜 범위, 페이징)"""
+    """사진 검색 (카테고리, 키워드, 공개번호, 날짜 범위, 페이징)"""
     try:
         result = search_photos(
             category=category,
+            public_index=public_index,
             keyword=keyword,
             date_from=date_from,
             date_to=date_to,
