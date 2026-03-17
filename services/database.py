@@ -145,6 +145,17 @@ def update_photo(photo_id: str, caption: str = None, category: str = None, displ
         data["display_order"] = display_order
     if is_public is not None:
         data["is_public"] = is_public
+        if is_public:
+            # 현재 사진의 public_index 확인
+            current = supabase.table("blog_photos").select("public_index").eq("id", photo_id).single().execute()
+            if not (current.data and current.data.get("public_index")):
+                # 새 번호 부여 (전체 최대값 + 1, 삭제된 번호 재사용 안 함)
+                max_result = supabase.table("blog_photos").select("public_index").not_.is_("public_index", "null").order("public_index", desc=True).limit(1).execute()
+                next_index = (max_result.data[0]["public_index"] + 1) if max_result.data else 1
+                data["public_index"] = next_index
+        else:
+            # 해제 시 번호 폐기
+            data["public_index"] = None
     if data:
         result = supabase.table("blog_photos").update(data).eq("id", photo_id).execute()
         return result.data[0] if result.data else {}
@@ -191,7 +202,7 @@ def search_photos(category: str = None, keyword: str = None, date_from: str = No
 
 
 def search_public_photos(category: str = None, keyword: str = None, page: int = 1, page_size: int = 24) -> dict:
-    """외부 공개 사진 검색 (is_public=true만)"""
+    """외부 공개 사진 검색 (is_public=true만, public_index 순)"""
     supabase = get_supabase()
     query = supabase.table("blog_photos").select("*, blog_projects(name)", count="exact").eq("is_public", True)
     if category:
@@ -200,7 +211,7 @@ def search_public_photos(category: str = None, keyword: str = None, page: int = 
         query = query.or_(f"caption.ilike.*{keyword}*,filename.ilike.*{keyword}*")
 
     offset = (page - 1) * page_size
-    result = query.order("created_at", desc=True).range(offset, offset + page_size - 1).execute()
+    result = query.order("public_index").range(offset, offset + page_size - 1).execute()
     total = result.count or 0
     total_pages = (total + page_size - 1) // page_size if total > 0 else 1
 

@@ -75,6 +75,7 @@ class PhotoResponse(BaseModel):
     category: Optional[str] = "기타"
     display_order: Optional[int] = 0
     is_public: Optional[bool] = False
+    public_index: Optional[int] = None
     created_at: Optional[datetime] = None
 
 

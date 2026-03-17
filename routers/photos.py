@@ -147,6 +147,7 @@ async def upload_photo(
             category=photo.get("category", "기타"),
             display_order=photo.get("display_order", 0),
             is_public=photo.get("is_public", False),
+            public_index=photo.get("public_index"),
             created_at=photo.get("created_at"),
         )
     except HTTPException:
@@ -175,6 +176,7 @@ async def get_project_photos(project_id: str):
                 category=p.get("category", "기타"),
                 display_order=p.get("display_order", 0),
                 is_public=p.get("is_public", False),
+                public_index=p.get("public_index"),
                 created_at=p.get("created_at"),
             )
             for p in photos
@@ -361,6 +363,7 @@ async def public_photos_endpoint(
         photo_list = [
             {
                 "id": p["id"],
+                "public_index": p.get("public_index"),
                 "project_name": p.get("blog_projects", {}).get("name", "") if p.get("blog_projects") else "",
                 "ftp_url": p.get("ftp_url"),
                 "caption": p.get("caption", ""),
