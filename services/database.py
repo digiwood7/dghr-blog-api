@@ -227,11 +227,20 @@ def search_public_photos(category: str = None, keyword: str = None, page: int = 
 
 
 def get_public_categories() -> list[str]:
-    """외부 공개 사진의 카테고리 목록"""
+    """외부 공개 사진의 카테고리 목록 (블로그 설정 순서 반영)"""
     supabase = get_supabase()
+    # 실제 공개 사진이 있는 카테고리
     result = supabase.table("blog_photos").select("category").eq("is_public", True).execute()
-    categories = sorted(set(p["category"] for p in (result.data or []) if p.get("category")))
-    return categories
+    existing = set(p["category"] for p in (result.data or []) if p.get("category"))
+    # 블로그 설정의 카테고리 순서 조회
+    ordered = get_settings("global", "photo_categories", None)
+    if ordered and isinstance(ordered, list):
+        # 설정 순서대로, 실제 사진이 있는 것만
+        categories = [c for c in ordered if c in existing]
+        # 설정에 없지만 사진은 있는 카테고리 → 뒤에 추가
+        remaining = sorted(existing - set(ordered))
+        return categories + remaining
+    return sorted(existing)
 
 
 def delete_photo(photo_id: str) -> bool:
