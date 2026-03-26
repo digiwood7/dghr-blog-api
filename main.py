@@ -28,6 +28,7 @@ from routers import projects, photos, generate, settings
 from routers import progen_projects, progen_files
 from routers import pptx_projects, pptx_files
 from routers import suggestion_images
+from routers import work_instruction
 
 # Create FastAPI app
 app = FastAPI(
@@ -45,8 +46,10 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
         "https://hr.digiwood.co.kr",
+        "https://honeyerp.vercel.app",
+        "https://erp.d-onworks.com",
     ],
-    allow_origin_regex=r"https://.*\.vercel\.app|https://hr\.digiwood\.co\.kr|http://localhost:\d+|http://127\.0\.0\.1:\d+",
+    allow_origin_regex=r"https://.*\.vercel\.app|https://hr\.digiwood\.co\.kr|https://erp\.d-onworks\.com|http://localhost:\d+|http://127\.0\.0\.1:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -62,6 +65,7 @@ app.include_router(progen_files.router)
 app.include_router(pptx_projects.router)
 app.include_router(pptx_files.router)
 app.include_router(suggestion_images.router)
+app.include_router(work_instruction.router)
 
 
 @app.get("/")
