@@ -19,8 +19,12 @@ from services.database import (
     delete_project,
     get_photo_count,
     update_project_name,
+    update_project_status,
+    get_photos,
+    get_content,
 )
 from services.ftp import Cafe24FTP
+from services.webhook import send_publish_webhook
 
 router = APIRouter(prefix="/api/blog/projects", tags=["projects"])
 
@@ -129,6 +133,56 @@ async def update_project_endpoint(project_id: str, data: ProjectUpdate):
             updated_at=updated.get("updated_at"),
             generated_at=updated.get("generated_at"),
             photo_count=photo_count,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{project_id}/publish", response_model=SuccessResponse)
+async def publish_project(project_id: str):
+    """프로젝트 발행 (d-onworks 포트폴리오에 자동 연동)
+
+    1. 프로젝트 상태 → published
+    2. d-onworks webhook 전송
+    """
+    try:
+        project = get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
+
+        # 글이 생성된 상태에서만 발행 가능
+        if project.get("status") not in ("generated", "published", "completed"):
+            raise HTTPException(
+                status_code=400,
+                detail="글 생성이 완료된 프로젝트만 발행할 수 있습니다"
+            )
+
+        content = get_content(project_id)
+        if not content or not content.get("title"):
+            raise HTTPException(status_code=400, detail="생성된 글이 없습니다")
+
+        photos = get_photos(project_id)
+
+        # 상태 업데이트
+        update_project_status(project_id, "published")
+
+        # d-onworks webhook 전송
+        try:
+            webhook_result = send_publish_webhook(project, content, photos)
+        except Exception as webhook_err:
+            # webhook 실패해도 상태는 published로 유지 (로그만 남김)
+            print(f"Webhook 전송 실패: {webhook_err}")
+            return SuccessResponse(
+                success=True,
+                message=f"발행 완료 (포트폴리오 연동 실패: {webhook_err})"
+            )
+
+        action = webhook_result.get("action", "created")
+        return SuccessResponse(
+            success=True,
+            message=f"발행 완료 (포트폴리오 {action})"
         )
     except HTTPException:
         raise
