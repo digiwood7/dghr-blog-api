@@ -29,6 +29,7 @@ from routers import progen_projects, progen_files
 from routers import pptx_projects, pptx_files
 from routers import suggestion_images
 from routers import work_instruction
+from routers import progen_generate, dgpicture_generate, mailing_generate
 
 # Create FastAPI app
 app = FastAPI(
@@ -68,6 +69,9 @@ app.include_router(pptx_projects.router)
 app.include_router(pptx_files.router)
 app.include_router(suggestion_images.router)
 app.include_router(work_instruction.router)
+app.include_router(progen_generate.router)
+app.include_router(dgpicture_generate.router)
+app.include_router(mailing_generate.router)
 
 
 @app.get("/")
