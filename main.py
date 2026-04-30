@@ -9,6 +9,12 @@ from pathlib import Path
 # Add backend directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Starlette form parser의 multipart part 크기 한도 상향 (디폴트 1MB → 20MB)
+# 작업지시서 HTML 본문이 1MB 초과 시 'Part exceeded maximum size of 1024KB'
+# 에러 발생 → 라우터 진입 전에 거부되므로 여기서 전역 패치
+import starlette.formparsers as _fp  # noqa: E402
+_fp.MultiPartParser.max_part_size = 20 * 1024 * 1024  # 20MB
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
